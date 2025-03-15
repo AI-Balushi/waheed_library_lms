@@ -23,20 +23,8 @@ def save_books(books):
 # Load book collection
 books = load_books()
 
-# Streamlit UI Styling
+# Streamlit UI
 st.set_page_config(page_title="📚 Personal Library Manager", layout="centered")
-st.markdown(
-    """
-    <style>
-        .main {background-color: #f4f4f4; text-align: center;}
-        div[data-testid="stSidebar"] {background-color: #2e3b4e; color: white;}
-        h1, h2, h3 {color: #2e3b4e; text-align: center;}
-        .stButton>button {width: 100%; background-color: #2e3b4e; color: white;}
-        .stDataFrame {margin: auto;}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 # Navigation at the top
 st.title("📚 Personal Library Manager")
@@ -68,7 +56,7 @@ if menu == "Add Book":
                     books.append(new_book)
                     save_books(books)
                     st.success("✅ Book added successfully!")
-                    time.sleep(1)  # Delay for 5 seconds
+                    time.sleep(1)
                     st.rerun()
             else:
                 st.error("⚠️ Please fill in all required fields!")
@@ -83,7 +71,7 @@ elif menu == "View Books":
             df = df[df["title"].str.lower().str.contains(search_query, na=False) | 
                     df["author"].str.lower().str.contains(search_query, na=False)]
         
-        st.dataframe(df.style.set_properties(**{"background-color": "#f4f4f4", "color": "black"}), use_container_width=True)
+        st.dataframe(df, use_container_width=True)
     else:
         st.warning("⚠️ No books found. Add some!")
 
@@ -127,7 +115,7 @@ elif menu == "Manage Books":
                         })
                         save_books(books)
                         st.success("✔ Book updated successfully!")
-                        time.sleep(1)  # Delay for 5 seconds
+                        time.sleep(1)
                         st.rerun()
                     else:
                         st.error("⚠️ Please fill in all required fields!")
@@ -136,7 +124,7 @@ elif menu == "Manage Books":
                 books.remove(book_to_edit)
                 save_books(books)
                 st.warning("⚠ Book deleted!")
-                time.sleep(1)  # Delay for 5 seconds
+                time.sleep(1)
                 st.rerun()
     else:
         st.warning("⚠ No books found.")
