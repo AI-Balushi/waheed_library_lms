@@ -1,162 +1,142 @@
 import json
+import streamlit as st
+import pandas as pd
+import time
+from datetime import datetime
 
+# File to store books
+db_file = "books_data.json"
 
-class BookCollection:
-    """A class to manage a collection of books, allowing users to store and organize their reading materials."""
+# Load books from file
+def load_books():
+    try:
+        with open(db_file, "r") as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
-    def __init__(self):
-        """Initialize a new book collection with an empty list and set up file storage."""
-        self.book_list = []
-        self.storage_file = "books_data.json"
-        self.read_from_file()
+# Save books to file
+def save_books(books):
+    with open(db_file, "w") as file:
+        json.dump(books, file, indent=4)
 
-    def read_from_file(self):
-        """Load saved books from a JSON file into memory.
-        If the file doesn't exist or is corrupted, start with an empty collection."""
-        try:
-            with open(self.storage_file, "r") as file:
-                self.book_list = json.load(file)
-        except (FileNotFoundError, json.JSONDecodeError):
-            self.book_list = []
+# Load book collection
+books = load_books()
 
-    def save_to_file(self):
-        """Store the current book collection to a JSON file for permanent storage."""
-        with open(self.storage_file, "w") as file:
-            json.dump(self.book_list, file, indent=4)
+# Streamlit UI Styling
+st.set_page_config(page_title="📚 Personal Library Manager", layout="centered")
+st.markdown(
+    """
+    <style>
+        .main {background-color: #f4f4f4; text-align: center;}
+        div[data-testid="stSidebar"] {background-color: #2e3b4e; color: white;}
+        h1, h2, h3 {color: #2e3b4e; text-align: center;}
+        .stButton>button {width: 100%; background-color: #2e3b4e; color: white;}
+        .stDataFrame {margin: auto;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-    def create_new_book(self):
-        """Add a new book to the collection by gathering information from the user."""
-        book_title = input("Enter book title: ")
-        book_author = input("Enter author: ")
-        publication_year = input("Enter publication year: ")
-        book_genre = input("Enter genre: ")
-        is_book_read = (
-            input("Have you read this book? (yes/no): ").strip().lower() == "yes"
-        )
+# Navigation at the top
+st.title("📚 Personal Library Manager")
+menu = st.radio("Select an Option", ["Add Book", "View Books", "Statistics", "Manage Books"], horizontal=True)
 
-        new_book = {
-            "title": book_title,
-            "author": book_author,
-            "year": publication_year,
-            "genre": book_genre,
-            "read": is_book_read,
-        }
+if menu == "Add Book":
+    st.subheader("📖 Add a New Book")
+    with st.form("add_book_form"):
+        title = st.text_input("Title").strip()
+        author = st.text_input("Author").strip()
+        year = st.number_input("Publication Year", min_value=0, max_value=2025, step=1)
+        genre = st.text_input("Genre").strip()
+        read_status = st.checkbox("Mark as Read")
+        submitted = st.form_submit_button("➕ Add Book")
 
-        self.book_list.append(new_book)
-        self.save_to_file()
-        print("Book added successfully!\n")
-
-    def delete_book(self):
-        """Remove a book from the collection using its title."""
-        book_title = input("Enter the title of the book to remove: ")
-
-        for book in self.book_list:
-            if book["title"].lower() == book_title.lower():
-                self.book_list.remove(book)
-                self.save_to_file()
-                print("Book removed successfully!\n")
-                return
-        print("Book not found!\n")
-
-    def find_book(self):
-        """Search for books in the collection by title or author name."""
-        search_type = input("Search by:\n1. Title\n2. Author\nEnter your choice: ")
-        search_text = input("Enter search term: ").lower()
-        found_books = [
-            book
-            for book in self.book_list
-            if search_text in book["title"].lower()
-            or search_text in book["author"].lower()
-        ]
-
-        if found_books:
-            print("Matching Books:")
-            for index, book in enumerate(found_books, 1):
-                reading_status = "Read" if book["read"] else "Unread"
-                print(
-                    f"{index}. {book['title']} by {book['author']} ({book['year']}) - {book['genre']} - {reading_status}"
-                )
-        else:
-            print("No matching books found.\n")
-
-    def update_book(self):
-        """Modify the details of an existing book in the collection."""
-        book_title = input("Enter the title of the book you want to edit: ")
-        for book in self.book_list:
-            if book["title"].lower() == book_title.lower():
-                print("Leave blank to keep existing value.")
-                book["title"] = input(f"New title ({book['title']}): ") or book["title"]
-                book["author"] = (
-                    input(f"New author ({book['author']}): ") or book["author"]
-                )
-                book["year"] = input(f"New year ({book['year']}): ") or book["year"]
-                book["genre"] = input(f"New genre ({book['genre']}): ") or book["genre"]
-                book["read"] = (
-                    input("Have you read this book? (yes/no): ").strip().lower()
-                    == "yes"
-                )
-                self.save_to_file()
-                print("Book updated successfully!\n")
-                return
-        print("Book not found!\n")
-
-    def show_all_books(self):
-        """Display all books in the collection with their details."""
-        if not self.book_list:
-            print("Your collection is empty.\n")
-            return
-
-        print("Your Book Collection:")
-        for index, book in enumerate(self.book_list, 1):
-            reading_status = "Read" if book["read"] else "Unread"
-            print(
-                f"{index}. {book['title']} by {book['author']} ({book['year']}) - {book['genre']} - {reading_status}"
-            )
-        print()
-
-    def show_reading_progress(self):
-        """Calculate and display statistics about your reading progress."""
-        total_books = len(self.book_list)
-        completed_books = sum(1 for book in self.book_list if book["read"])
-        completion_rate = (
-            (completed_books / total_books * 100) if total_books > 0 else 0
-        )
-        print(f"Total books in collection: {total_books}")
-        print(f"Reading progress: {completion_rate:.2f}%\n")
-
-    def start_application(self):
-        """Run the main application loop with a user-friendly menu interface."""
-        while True:
-            print("📚 Welcome to Your Book Collection Manager! 📚")
-            print("1. Add a new book")
-            print("2. Remove a book")
-            print("3. Search for books")
-            print("4. Update book details")
-            print("5. View all books")
-            print("6. View reading progress")
-            print("7. Exit")
-            user_choice = input("Please choose an option (1-7): ")
-
-            if user_choice == "1":
-                self.create_new_book()
-            elif user_choice == "2":
-                self.delete_book()
-            elif user_choice == "3":
-                self.find_book()
-            elif user_choice == "4":
-                self.update_book()
-            elif user_choice == "5":
-                self.show_all_books()
-            elif user_choice == "6":
-                self.show_reading_progress()
-            elif user_choice == "7":
-                self.save_to_file()
-                print("Thank you for using Book Collection Manager. Goodbye!")
-                break
+        if submitted:
+            if title and author and genre:
+                if any(book["title"].lower() == title.lower() for book in books):
+                    st.error("⚠️ This book already exists!")
+                else:
+                    new_book = {
+                        "title": title,
+                        "author": author,
+                        "year": year,
+                        "genre": genre,
+                        "read": read_status,
+                        "added_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                    books.append(new_book)
+                    save_books(books)
+                    st.success("✅ Book added successfully!")
+                    time.sleep(1)  # Delay for 5 seconds
+                    st.rerun()
             else:
-                print("Invalid choice. Please try again.\n")
+                st.error("⚠️ Please fill in all required fields!")
 
+elif menu == "View Books":
+    st.subheader("📚 Your Book Collection")
+    df = pd.DataFrame(books)
+    
+    if not df.empty:
+        search_query = st.text_input("🔍 Search by Title or Author").strip().lower()
+        if search_query:
+            df = df[df["title"].str.lower().str.contains(search_query, na=False) | 
+                    df["author"].str.lower().str.contains(search_query, na=False)]
+        
+        st.dataframe(df.style.set_properties(**{"background-color": "#f4f4f4", "color": "black"}), use_container_width=True)
+    else:
+        st.warning("⚠️ No books found. Add some!")
 
-if __name__ == "__main__":
-    book_manager = BookCollection()
-    book_manager.start_application()
+elif menu == "Statistics":
+    st.subheader("📊 Library Statistics")
+    total_books = len(books)
+    read_books = sum(1 for book in books if book.get("read", False))
+    unread_books = total_books - read_books
+    read_percentage = (read_books / total_books * 100) if total_books > 0 else 0
+    
+    st.metric("Total Books", total_books)
+    st.metric("Books Read", read_books, "📖")
+    st.metric("Books Unread", unread_books, "📕")
+    st.metric("Reading Progress", f"{read_percentage:.2f}%", "📊")
+
+elif menu == "Manage Books":
+    st.subheader("🛠 Manage Your Books")
+    df = pd.DataFrame(books)
+    
+    if not df.empty:
+        selected_title = st.selectbox("Select a Book to Edit or Delete", df["title"].tolist())
+        book_to_edit = next((book for book in books if book["title"] == selected_title), None)
+        
+        if book_to_edit:
+            with st.form("edit_book_form"):
+                new_title = st.text_input("Title", book_to_edit["title"]).strip()
+                new_author = st.text_input("Author", book_to_edit["author"]).strip()
+                new_year = st.number_input("Publication Year", min_value=0, max_value=2025, step=1, value=int(book_to_edit["year"]))
+                new_genre = st.text_input("Genre", book_to_edit["genre"]).strip()
+                new_read_status = st.checkbox("Mark as Read", book_to_edit["read"])
+                update_submitted = st.form_submit_button("✅ Update Book")
+
+                if update_submitted:
+                    if new_title and new_author and new_genre:
+                        book_to_edit.update({
+                            "title": new_title,
+                            "author": new_author,
+                            "year": new_year,
+                            "genre": new_genre,
+                            "read": new_read_status
+                        })
+                        save_books(books)
+                        st.success("✔ Book updated successfully!")
+                        time.sleep(1)  # Delay for 5 seconds
+                        st.rerun()
+                    else:
+                        st.error("⚠️ Please fill in all required fields!")
+
+            if st.button("❌ Delete Book", key="delete_book"):
+                books.remove(book_to_edit)
+                save_books(books)
+                st.warning("⚠ Book deleted!")
+                time.sleep(1)  # Delay for 5 seconds
+                st.rerun()
+    else:
+        st.warning("⚠ No books found.")
